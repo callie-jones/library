@@ -1,5 +1,5 @@
 # Library
-This provides 2 API endpoints `add-action` and `get-stats` that handle concurrent requests.
+This provides 2 API endpoints `add-action` and `get-stats` that handle concurrent requests. More information is on the [wiki](https://github.com/callie-jones/library/wiki/Library-Wiki)
 
 ### Environment
 - python 2.7
