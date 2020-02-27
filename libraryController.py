@@ -4,6 +4,7 @@ import json
 import threading
 from urllib2 import HTTPError
 from multiprocessing import Queue
+import sys
 
 dataLock = threading.Lock()
 data = dict()
@@ -11,17 +12,20 @@ data = dict()
 def handler(method, data):
     try:
         queue = Queue()
-        th = None
         if(data):
             th = threading.Thread(target=method, args=(data, queue))
         else:
             th = threading.Thread(target=method, args=(queue,))
         th.start()
         res = queue.get()
-        th.join()
+        while th.is_alive():
+            th.join(1)
         if(isinstance(res, Exception)):
             raise HTTPError(500, "Internal Server Error")
         return res
+    except (KeyboardInterrupt, SystemExit):
+        print 'Exiting...'
+        sys.exit()
     except Exception as err:
         print('LibraryController.handler - Error: ', err)
         return HTTPError(500, "Internal Server Error")

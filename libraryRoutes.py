@@ -15,7 +15,7 @@ data = dict()
 
 @app.route('/add-action', methods=['POST'])
 def addActionRoute():
-    if(not request.data):
+    if(not request.get_json().keys()):
         raise HTTPError(400, 'Bad Request')
     else:
         return handler(addAction, request.data)
