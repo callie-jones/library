@@ -6,62 +6,66 @@ import json
 from multiprocessing import Queue
 from libraryRoutes import app
 
-numReqs = 8
+numReqs = 200
 
-def evalAvg(res):
+def evalAvg(datas, finalAvg):
     # compute expected avg
-    count = 0
-    # offset by 1 since res[0] = []
-    total = 1
-    for val in res:
-        if(val != 'success'):
-            obj = eval(val)
-            print 'obj = ', obj
-            avg = obj[0]['avg'] if obj != [] else 0
-            total += avg
-            count += 1
-    finalObj = res[len(res)-2] if len(res) % 2 == 0 else res[len(res)-1]
-    finalAvg = eval(finalObj)[0]['avg']
-    # TODO add round
-    computedAvg = total / count
-    print 'computed avg = ', computedAvg
-    #print 'final avg = ', finalAvg
+    actions = dict()
+    computedAvg = []
+    for data in datas:
+        actionObj = eval(data)
+        if(actionObj['action'] not in actions.keys()):
+            actions[actionObj['action']] = {'time': actionObj['time'], 'count': 1}
+        else:
+            newCount = actions[actionObj['action']]['count'] + 1
+            newTime = actions[actionObj['action']]['time'] + actionObj['time']
+            actions[actionObj['action']] = {'time': newTime, 'count': newCount}
+    for key in  actions.keys():
+        actAvg = actions[key]['time'] / actions[key]['count']
+        act = {'action': key, 'avg': actAvg}
+        computedAvg.append(act)
+    return eval(finalAvg) == computedAvg
 
 def sendRequest(data, queue):
-    #print('data = ', data);
     if(data):
-        print('CALL - addAction')
         res = app.test_client().post('/add-action', data=data, content_type='application/json')
-        queue.put('success')
+        queue.put(data)
     else:
-        print('CALL - getStats')
         res = app.test_client().get('/get-stats')
         queue.put(res.data)
 
 def main():
-    #create thread for each request
+    # create thread for each request
     queue = Queue()
+    datas = []
     res = []
     threads = []
     for i in range(numReqs):
-        if((i+1) % 2 == 0):
+        if(i == numReqs-1):
+            th = threading.Thread(target=sendRequest, args=(None, queue))
+        elif((i+1) % 2 == 0):
             data = json.dumps({'action': 'jump', 'time': i+1})
+            datas.append(data)
             th = threading.Thread(target=sendRequest, args=(data,queue))
         elif((i+1) % 5 == 0):
             data = json.dumps({'action': 'swim', 'time': i+1})
+            datas.append(data)
             th = threading.Thread(target=sendRequest, args=(data,queue))
         else:
             th = threading.Thread(target=sendRequest, args=(None, queue))
         th.start()
         res.append(queue.get())
-    time.sleep(0.1)
+    # need queue delay when numReqs is small
+    if(numReqs < 10): time.sleep(0.1)
     queue.close()
     queue.join_thread()
     for t in threads:
         t.join()
-    print 'res = ', res
     # evaluate res
-    #evalAvg(res)
+    if(evalAvg(datas, res[len(res)-1])):
+        print 'Success'
+    else:
+        print 'Failed'
 
 if(__name__ == '__main__'):
     main()
