@@ -10,9 +10,6 @@ from libraryController import addAction, getStats, handler
 app = flask.Flask(__name__)
 application = app
 
-dataLock = threading.Lock()
-data = dict()
-
 @app.route('/add-action', methods=['POST'])
 def addActionRoute():
     if(not request.get_json().keys()):
@@ -22,9 +19,7 @@ def addActionRoute():
 
 @app.route('/get-stats', methods=['GET'])
 def getStatsRoute():
-    res = handler(getStats, None)
-    #print('res.data = ', json.dumps(res))
-    return res
+    return handler(getStats, None)
 
 @app.errorhandler(Exception)
 def errHandler(err):
